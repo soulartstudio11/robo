@@ -1,0 +1,157 @@
+Smart Farming Robot — Connections Only
+Connect the components to your Arduino Uno using these tables. Keep the power OFF while wiring.
+1. HC-05 Bluetooth
+HC-05	Arduino Uno
+VCC	5V*
+GND	GND
+TXD	D0 (RX)
+RXD	D1 (TX), through voltage divider
+*Use 5V only if your HC-05 breakout supports it.
+Voltage divider for HC-05 RXD: Arduino D1 → 1 kΩ resistor → junction → HC-05 RXD. Connect a 2 kΩ resistor from the junction to GND.
+2. L298N motor driver
+L298N	Connection
+ENA	Arduino D5
+IN1	Arduino D7
+IN2	Arduino D8
+IN3	Arduino D9
+IN4	Arduino D10
+ENB	Arduino D6
+OUT1, OUT2	Left motor
+OUT3, OUT4	Right motor
+Motor supply +	Motor battery positive
+GND	Motor battery negative and Arduino GND
+Remove the ENA and ENB jumpers when using D5 and D6 for speed control.
+3. Ultrasonic sensor (HC-SR04)
+HC-SR04	Arduino Uno
+VCC	5V
+GND	GND
+TRIG	D11
+ECHO	D12
+4. Soil-moisture sensor
+If you have a bare sensor with two metal prongs:
+Connection	Where
+Arduino 5V	One end of a 10 kΩ resistor
+Other end of resistor	Arduino A0 and first probe prong
+Second probe prong	GND
+If yours has a circuit board with AO, DO, VCC and GND, stop here—the wiring is different.
+5. Water pump
+Use a suitable logic-level N-channel MOSFET, a 220 Ω resistor, a 10 kΩ resistor, and a flyback diode.
+Connection	Where
+Arduino D4	Through 220 Ω to MOSFET gate
+MOSFET gate	Through 10 kΩ to GND
+MOSFET source	Common GND
+MOSFET drain	Pump negative
+Pump positive	External pump-supply positive
+Pump-supply negative	Common GND
+Diode striped end (cathode)	Pump positive
+Diode other end (anode)	Pump negative
+Do not power the pump or drive motors directly from the Arduino.
+6. Common ground
+Connect these grounds together:
+- Arduino GND
+- L298N GND
+- Motor battery negative
+- Pump supply negative
+- Sensor GND
+Before we continue
+Which soil-moisture sensor do you have?
+
+Two metal prongs only
+
+Circuit board with AO / DO / VCC / GND
+
+I'm not sure
+
+What voltage is written on your water pump?
+
+3–6V
+
+12V
+
+I don't know
+
+Continue
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+My soil moisture sensor: two metal prongs only. Pump voltage: 3-6V. Continue with the correct wiring only.
+
+
+
+
+
+
+
+
+
+
+
+
+
+Final connections — Arduino Uno farming robot
+Power OFF while wiring. Follow these connections only for now.
+1. Soil-moisture probe — two metal prongs
+You need one 10 kΩ resistor.
+Arduino 5V
+
+10 kΩ resistor
+
+Junction: Arduino A0 + probe prong 1
+
+Probe prong 2 → Arduino GND
+
+
+2. Water pump — 3–6V
+Use a logic-level N-channel MOSFET rated for the pump's current, a 220 Ω resistor, a 10 kΩ resistor, and a flyback diode.
+Component pin	Connect to
+Arduino D4	220 Ω resistor → MOSFET gate
+MOSFET gate	10 kΩ resistor → GND
+MOSFET source	Common GND
+MOSFET drain	Pump negative (−)
+Pump positive (+)	External 3–6V supply positive
+External supply negative	Common GND
+Diode striped end	Pump positive (+)
+Diode unstriped end	Pump negative (−)
+Do not connect the pump directly to Arduino D4 or 5V.
+3. Other connections
+HC-05 Bluetooth
+HC-05	Arduino Uno
+VCC	5V, if breakout supports it
+GND	GND
+TXD	D0 / RX
+RXD	D1 / TX through a voltage divider: 1 kΩ in series and 2 kΩ from the RXD junction to GND
+L298N motor driver
+L298N	Arduino Uno
+ENA	D5
+IN1	D7
+IN2	D8
+IN3	D9
+IN4	D10
+ENB	D6
+OUT1, OUT2	Left motor
+OUT3, OUT4	Right motor
+Motor supply positive	Motor-rated battery positive
+GND	Common GND
+Remove the ENA and ENB jumpers for speed control.
+HC-SR04 ultrasonic sensor
+HC-SR04	Arduino Uno
+VCC	5V
+GND	GND
+TRIG	D11
+ECHO	D12
+4. Common ground — essential
+Connect Arduino GND, L298N GND, motor-battery negative, pump-supply negative, and sensor GND together.
+Before switching on: confirm your motor and pump supply voltages, MOSFET pin order, and diode orientation. Disconnect the HC-05 from D0/D1 while uploading the Arduino sketch.
