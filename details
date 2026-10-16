@@ -1,0 +1,19 @@
+Commands to send from your computer
+Send this command	Robot action
+forward	Move forward if the path is clear
+backward	Move backward
+left	Turn left
+right	Turn right
+stop	Stop the motors
+sensors	Return distance and moisture readings
+moistureon	Report readings every second
+moistureoff	Stop periodic reporting
+wateron	Run the pump for up to 5 seconds
+wateroff	Stop the pump
+Important before running it
+1. Upload: disconnect HC-05 wires from D0 and D1 before uploading, then reconnect them.
+2. Bluetooth: configure the serial terminal to 9600 baud and send each command with a newline.
+3. First test: lift the wheels off the ground and test the motors before placing the robot on the floor.
+4. Moisture calibration: DRY_VALUE = 800 and WET_VALUE = 350 are example values, not guaranteed readings for your probe. Measure dry and wet readings and adjust them.
+5. Pump: use its separate 3–6V supply through the MOSFET circuit. The 5-second cutoff is a safety limit, not automatic soil-based watering.
+Note: Because the HC-05 shares D0/D1 with USB serial, its data will also occupy the Uno's USB serial connection. Disconnect it whenever you upload a new sketch.
