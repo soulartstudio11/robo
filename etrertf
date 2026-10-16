@@ -1,0 +1,303 @@
+
+/*
+  SMART FARMING ROBOT
+  Board: Arduino Uno
+  Bluetooth: HC-05 on D0/RX and D1/TX
+  Motor driver: L298N
+  Ultrasonic sensor: HC-SR04
+  Soil probe: two-prong resistive probe with 10k resistor
+  Pump: 3-6V external supply controlled by MOSFET
+
+  Bluetooth commands must end with a newline:
+  forward, backward, left, right, stop
+  moistureon, moistureoff
+  wateron, wateroff
+  sensors
+*/
+
+const byte ENA = 5;
+const byte IN1 = 7;
+const byte IN2 = 8;
+
+const byte ENB = 6;
+const byte IN3 = 9;
+const byte IN4 = 10;
+
+const byte PUMP_PIN = 4;
+const byte TRIG_PIN = 11;
+const byte ECHO_PIN = 12;
+const byte MOISTURE_PIN = A0;
+
+const int MOTOR_SPEED = 180;
+const int OBSTACLE_LIMIT_CM = 20;
+
+// Calibrate these after testing your soil probe.
+const int DRY_VALUE = 800;
+const int WET_VALUE = 350;
+
+const unsigned long PUMP_MAX_MS = 5000;
+const unsigned long REPORT_INTERVAL_MS = 1000;
+
+String commandBuffer = "";
+
+bool movingForward = false;
+bool moistureReporting = false;
+bool pumpIsOn = false;
+
+unsigned long pumpStartedAt = 0;
+unsigned long lastReportAt = 0;
+
+void setup() {
+  pinMode(ENA, OUTPUT);
+  pinMode(IN1, OUTPUT);
+  pinMode(IN2, OUTPUT);
+
+  pinMode(ENB, OUTPUT);
+  pinMode(IN3, OUTPUT);
+  pinMode(IN4, OUTPUT);
+
+  pinMode(PUMP_PIN, OUTPUT);
+  pinMode(TRIG_PIN, OUTPUT);
+  pinMode(ECHO_PIN, INPUT);
+
+  digitalWrite(PUMP_PIN, LOW);
+  stopMotors(false);
+
+  // HC-05 uses the hardware serial pins D0 and D1.
+  Serial.begin(9600);
+  Serial.setTimeout(50);
+
+  Serial.println("SMART FARMING ROBOT READY");
+}
+
+void loop() {
+  readBluetooth();
+  checkObstacle();
+  checkPumpTimer();
+
+  if (moistureReporting &&
+      millis() - lastReportAt >= REPORT_INTERVAL_MS) {
+    lastReportAt = millis();
+    reportSensors();
+  }
+}
+
+// Read one text command terminated by newline.
+void readBluetooth() {
+  while (Serial.available() > 0) {
+    char ch = Serial.read();
+
+    if (ch == '\n' || ch == '\r') {
+      if (commandBuffer.length() > 0) {
+        commandBuffer.trim();
+        commandBuffer.toLowerCase();
+        processCommand(commandBuffer);
+        commandBuffer = "";
+      }
+    } else if (commandBuffer.length() < 40) {
+      commandBuffer += ch;
+    }
+  }
+}
+
+void processCommand(String cmd) {
+  if (cmd == "forward") {
+    long d = readDistanceCM();
+
+    if (d < 0 || d <= OBSTACLE_LIMIT_CM) {
+      stopMotors();
+      Serial.println("ALERT: FRONT BLOCKED OR SENSOR NO ECHO");
+    } else {
+      moveForward();
+    }
+  }
+  else if (cmd == "backward") {
+    moveBackward();
+  }
+  else if (cmd == "left") {
+    turnLeft();
+  }
+  else if (cmd == "right") {
+    turnRight();
+  }
+  else if (cmd == "stop") {
+    stopMotors();
+  }
+  else if (cmd == "moistureon") {
+    moistureReporting = true;
+    reportSensors();
+    lastReportAt = millis();
+  }
+  else if (cmd == "moistureoff") {
+    moistureReporting = false;
+    Serial.println("MOISTURE REPORTING OFF");
+  }
+  else if (cmd == "sensors") {
+    reportSensors();
+  }
+  else if (cmd == "wateron") {
+    startPump();
+  }
+  else if (cmd == "wateroff") {
+    stopPump();
+  }
+  else {
+    Serial.println("ERROR: UNKNOWN COMMAND");
+  }
+}
+
+// Drive forward.
+void moveForward() {
+  digitalWrite(IN1, HIGH);
+  digitalWrite(IN2, LOW);
+  digitalWrite(IN3, HIGH);
+  digitalWrite(IN4, LOW);
+
+  analogWrite(ENA, MOTOR_SPEED);
+  analogWrite(ENB, MOTOR_SPEED);
+
+  movingForward = true;
+  Serial.println("MOVING FORWARD");
+}
+
+// Drive backward.
+void moveBackward() {
+  movingForward = false;
+
+  digitalWrite(IN1, LOW);
+  digitalWrite(IN2, HIGH);
+  digitalWrite(IN3, LOW);
+  digitalWrite(IN4, HIGH);
+
+  analogWrite(ENA, MOTOR_SPEED);
+  analogWrite(ENB, MOTOR_SPEED);
+
+  Serial.println("MOVING BACKWARD");
+}
+
+// Pivot left.
+void turnLeft() {
+  movingForward = false;
+
+  digitalWrite(IN1, LOW);
+  digitalWrite(IN2, HIGH);
+  digitalWrite(IN3, HIGH);
+  digitalWrite(IN4, LOW);
+
+  analogWrite(ENA, MOTOR_SPEED);
+  analogWrite(ENB, MOTOR_SPEED);
+
+  Serial.println("TURNING LEFT");
+}
+
+// Pivot right.
+void turnRight() {
+  movingForward = false;
+
+  digitalWrite(IN1, HIGH);
+  digitalWrite(IN2, LOW);
+  digitalWrite(IN3, LOW);
+  digitalWrite(IN4, HIGH);
+
+  analogWrite(ENA, MOTOR_SPEED);
+  analogWrite(ENB, MOTOR_SPEED);
+
+  Serial.println("TURNING RIGHT");
+}
+
+void stopMotors(bool report = true) {
+  analogWrite(ENA, 0);
+  analogWrite(ENB, 0);
+
+  digitalWrite(IN1, LOW);
+  digitalWrite(IN2, LOW);
+  digitalWrite(IN3, LOW);
+  digitalWrite(IN4, LOW);
+
+  movingForward = false;
+
+  if (report) {
+    Serial.println("MOTORS STOPPED");
+  }
+}
+
+// Distance in centimetres; -1 means no echo.
+long readDistanceCM() {
+  digitalWrite(TRIG_PIN, LOW);
+  delayMicroseconds(3);
+
+  digitalWrite(TRIG_PIN, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(TRIG_PIN, LOW);
+
+  unsigned long duration =
+    pulseIn(ECHO_PIN, HIGH, 30000UL);
+
+  if (duration == 0) {
+    return -1;
+  }
+
+  return duration / 58;
+}
+
+// Keep checking for obstacles during forward motion.
+void checkObstacle() {
+  if (!movingForward) {
+    return;
+  }
+
+  long distance = readDistanceCM();
+
+  if (distance < 0 || distance <= OBSTACLE_LIMIT_CM) {
+    stopMotors();
+    Serial.println("ALERT: FORWARD MOVEMENT STOPPED");
+  }
+
+  delay(30);
+}
+
+void reportSensors() {
+  long distance = readDistanceCM();
+  int raw = analogRead(MOISTURE_PIN);
+
+  int percent = map(raw, DRY_VALUE, WET_VALUE, 0, 100);
+  percent = constrain(percent, 0, 100);
+
+  Serial.print("DIST:");
+  if (distance < 0) {
+    Serial.print("NO_ECHO");
+  } else {
+    Serial.print(distance);
+  }
+
+  Serial.print(",MOIST_RAW:");
+  Serial.print(raw);
+
+  Serial.print(",MOIST:");
+  Serial.print(percent);
+  Serial.println("%");
+}
+
+// Pump starts only when commanded and stops after 5 seconds.
+void startPump() {
+  if (!pumpIsOn) {
+    digitalWrite(PUMP_PIN, HIGH);
+    pumpIsOn = true;
+    pumpStartedAt = millis();
+    Serial.println("PUMP ON");
+  }
+}
+
+void stopPump() {
+  digitalWrite(PUMP_PIN, LOW);
+  pumpIsOn = false;
+  Serial.println("PUMP OFF");
+}
+
+void checkPumpTimer() {
+  if (pumpIsOn &&
+      millis() - pumpStartedAt >= PUMP_MAX_MS) {
+    stopPump();
+    Serial.println("PUMP AUTO STOP: 5 SECOND LIMIT");
+  }
+}
