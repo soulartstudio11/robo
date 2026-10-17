@@ -1,0 +1,137 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FarmBot | Auto Mode</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="logo">🌱</div>
+    <div>
+      <h1>FarmBot <span>Auto Mode</span></h1>
+      <p>Smart farming robot control centre</p>
+    </div>
+    <span class="badge">SIMULATION</span>
+  </header>
+
+  <main class="layout">
+    <section class="panel workspace">
+      <div class="section-head">
+        <div>
+          <small>FIELD NAVIGATION</small>
+          <h2>Camera & Route Planner</h2>
+        </div>
+        <div class="actions">
+          <button id="startCamera" class="secondary">Turn Camera On</button>
+          <button id="stopCamera" disabled>Turn Off</button>
+        </div>
+      </div>
+
+      <div id="stage" class="stage">
+        <video id="camera" autoplay playsinline muted></video>
+
+        <div id="placeholder" class="placeholder">
+          <div class="camera-icon">📷</div>
+          <h3>Field Camera</h3>
+          <p>Turn on your camera or load a sample field to test the planner.</p>
+          <button id="sampleField" class="secondary">Load Sample Field</button>
+        </div>
+
+        <canvas id="overlay"></canvas>
+        <div id="stageTip" class="tip">Choose a tool below to begin.</div>
+      </div>
+
+      <div class="tools">
+        <button class="tool active" data-tool="robot">🔴 Place Robot</button>
+        <button class="tool" data-tool="plant">🟢 Add Plant</button>
+        <button class="tool" data-tool="path">↗ Draw Path</button>
+        <button class="tool" data-tool="erase">⌫ Erase Marker</button>
+        <button id="clearPlan" class="tool danger">Clear Plan</button>
+      </div>
+
+      <div class="legend">
+        <span><i class="red-dot"></i> Robot</span>
+        <span><i class="green-dot"></i> Plants</span>
+        <span><i class="route-line"></i> Planned route</span>
+      </div>
+      <p class="note">
+        Place the robot marker, click each plant location, then select
+        Draw Path and drag your mouse along the planned route.
+      </p>
+    </section>
+
+    <aside class="sidebar">
+      <section class="panel">
+        <small>AUTOMATION SETTINGS</small>
+        <h2>Soil Moisture Limits</h2>
+        <p class="muted">Choose when watering should start and stop.</p>
+
+        <label for="minMoisture">
+          Minimum moisture
+          <strong><span id="minValue">35</span>%</strong>
+        </label>
+        <input id="minMoisture" type="range" min="0" max="99" value="35">
+
+        <label for="maxMoisture">
+          Maximum moisture
+          <strong><span id="maxValue">65</span>%</strong>
+        </label>
+        <input id="maxMoisture" type="range" min="1" max="100" value="65">
+
+        <p id="rangeWarning" class="warning hidden">
+          Maximum moisture must be greater than minimum moisture.
+        </p>
+
+        <div class="stats">
+          <div><small>Plants marked</small><strong id="plantCount">0</strong></div>
+          <div><small>Path points</small><strong id="pathCount">0</strong></div>
+        </div>
+
+        <button id="startAuto" class="primary full">▶ Start Auto Simulation</button>
+        <button id="stopAuto" class="stop full" disabled>■ Stop Automation</button>
+
+        <p class="note">
+          The current version simulates readings and watering. It does not
+          send commands to real motors or a pump.
+        </p>
+      </section>
+
+      <section class="panel">
+        <div class="section-head">
+          <div><small>LIVE STATUS</small><h2>Robot Activity</h2></div>
+          <span id="statusPill" class="status">Idle</span>
+        </div>
+
+        <div class="status-row">
+          <span>📍</span>
+          <div><small>Current task</small><strong id="currentTask">Waiting for plan</strong></div>
+        </div>
+        <div class="status-row">
+          <span>💧</span>
+          <div><small>Soil moisture</small><strong id="moistureReading">—</strong></div>
+        </div>
+        <div class="status-row">
+          <span>🚿</span>
+          <div><small>Water pump</small><strong id="pumpState">OFF</strong></div>
+        </div>
+
+        <div class="progress-label">
+          <small>Route progress</small><strong id="progressText">0%</strong>
+        </div>
+        <div class="progress"><div id="progressBar"></div></div>
+
+        <h3 class="log-heading">Activity Log</h3>
+        <div id="eventLog" class="event-log">
+          <p>Ready. Place the robot and plant markers.</p>
+        </div>
+      </section>
+    </aside>
+  </main>
+
+  <footer>FarmBot Auto Mode · Standalone prototype</footer>
+  <script src="app.js"></script>
+</body>
+</html>
